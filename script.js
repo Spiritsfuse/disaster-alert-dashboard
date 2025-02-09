@@ -15,6 +15,7 @@ let alertData = [];
 let allMarkers = [];
 let markerCluster;
 let helpCenterMarkers; // Layer for help center markers
+let currentHelpAlertId = null; // To track the currently active help centers
 const CACHE_TIME = 15 * 60 * 1000; // 15 minutes cache
 
 // OpenWeatherMap API key – REPLACE WITH YOUR OWN KEY if needed
@@ -143,7 +144,7 @@ function createPopupContent(alert) {
         <button class="map-btn zoom-btn" onclick="zoomToMarker(${alert.coordinates[0]}, ${alert.coordinates[1]})">
           <i class="fa-solid fa-magnifying-glass"></i> Zoom
         </button>
-        <button class="map-btn help-btn" onclick="showHelpCenters(${alert.coordinates[0]}, ${alert.coordinates[1]}, '${alert.id}')">
+        <button class="map-btn help-btn" onclick="toggleHelpCentersDisplay(${alert.coordinates[0]}, ${alert.coordinates[1]}, '${alert.id}')">
           <i class="fa-solid fa-hand-holding-medical"></i> Help
         </button>
         <button class="map-btn tips-btn" onclick="showPreparednessTips('${alert.type}')">
@@ -286,15 +287,15 @@ async function getWeather(lat, lon) {
 
 /**
  * Fetch nearby help centers (hospitals and clinics) using the Overpass API.
- * The query searches within a 10 km radius.
+ * The query now searches within a 20 km radius.
  */
 async function getHelpCenters(lat, lon) {
   try {
     const overpassUrl = "https://overpass-api.de/api/interpreter";
     const query = `[out:json];
       (
-        node["amenity"="hospital"](around:10000,${lat},${lon});
-        node["amenity"="clinic"](around:10000,${lat},${lon});
+        node["amenity"="hospital"](around:20000,${lat},${lon});
+        node["amenity"="clinic"](around:20000,${lat},${lon});
       );
       out;`;
     const response = await fetch(overpassUrl, { method: "POST", body: query });
@@ -312,13 +313,22 @@ async function getHelpCenters(lat, lon) {
 
 /**
  * Display nearby help centers in the popup and add them as markers on the map.
- * If more than three centers exist, show only the first three with a "Read More" toggle.
+ * Toggling: if the same alert's help centers are already displayed, clicking Help again will clear them.
  */
-async function showHelpCenters(lat, lon, alertId) {
+async function toggleHelpCentersDisplay(lat, lon, alertId) {
   const helpCentersDivId = `helpCenters-${alertId}`;
   const helpCentersDiv = document.getElementById(helpCentersDivId);
+  // If help centers for this alert are already shown, clear them
+  if (currentHelpAlertId === alertId) {
+    helpCenterMarkers.clearLayers();
+    helpCentersDiv.innerHTML = "";
+    currentHelpAlertId = null;
+    return;
+  }
+  // Otherwise, set the current help alert and load help centers
+  currentHelpAlertId = alertId;
   helpCentersDiv.innerHTML = "<em>Loading help centers...</em>";
-  // Clear previous help center markers
+  // Clear any existing help center markers
   if (helpCenterMarkers) helpCenterMarkers.clearLayers();
   try {
     const centers = await getHelpCenters(lat, lon);
@@ -445,7 +455,6 @@ function getMarkerIcon(type) {
  * Define the marker icon for help centers (hospitals/clinics) using Font Awesome.
  */
 function getHelpCenterIcon() {
-  // Create a divIcon using Font Awesome's hospital icon
   return L.divIcon({
     html: '<i class="fa-solid fa-hospital" style="color:#1976d2; font-size:22px;"></i>',
     className: 'help-center-div-icon',
