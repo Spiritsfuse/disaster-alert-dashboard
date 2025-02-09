@@ -1,14 +1,3 @@
-/**
- * Global Disaster Alert Dashboard
- * ---------------------------------
- * This script fetches real earthquake alerts from the USGS API.
- * The alerts are displayed on an interactive map (using OpenStreetMap tiles) with marker clustering,
- * live weather data (via OpenWeatherMap), and nearby help centers (via the Overpass API).
- * It also supports search functionality and a preparedness tips modal.
- *
- * Flood/wildfire alerts, filter buttons, and notifications have been removed.
- */
-
 // Global variables and constants
 let map;
 let alertData = [];
@@ -18,7 +7,7 @@ let helpCenterMarkers; // Layer for help center markers
 let currentHelpAlertId = null; // To track the currently active help centers
 const CACHE_TIME = 15 * 60 * 1000; // 15 minutes cache
 
-// OpenWeatherMap API key – REPLACE WITH YOUR OWN KEY if needed
+// OpenWeatherMap API key:
 const OPENWEATHER_API_KEY = '886f7df7c8a769ffa51585853f8763c8';
 
 /**
@@ -287,7 +276,7 @@ async function getWeather(lat, lon) {
 
 /**
  * Fetch nearby help centers (hospitals and clinics) using the Overpass API.
- * The query now searches within a 20 km radius.
+ * The query searches within a 20 km radius.
  */
 async function getHelpCenters(lat, lon) {
   try {
